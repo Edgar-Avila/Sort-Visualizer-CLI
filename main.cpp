@@ -1,5 +1,6 @@
 #include "CLI11.hpp"
 #include "bubbleSort.hpp"
+#include "insertionSort.hpp"
 #include "selectionSort.hpp"
 #include "sort.hpp"
 #include <chrono>
@@ -13,7 +14,7 @@ const int FPS = 30;
 const int MAX_DELTA = 1000 / FPS;
 const int MAX_DELAY = 30;
 
-enum class SortAlgo { Bubble, Selection };
+enum class SortAlgo { Bubble, Selection, Insertion};
 
 class App {
 public:
@@ -27,6 +28,10 @@ public:
     case SortAlgo::Selection:
       sort = new SelectionSort(arr);
       sortName = "Selection Sort";
+      break;
+    case SortAlgo::Insertion:
+      sort = new InsertionSort(arr);
+      sortName = "Insertion Sort";
       break;
     }
   }
@@ -85,7 +90,8 @@ public:
 
     // Print values
     for (int i = 0; i < arr.size(); i++) {
-      mvprintw(rows - 1, paddingX + i * (numWidth) + (numWidth / 2) - 1, "%d", arr[i]);
+      mvprintw(rows - 1, paddingX + i * (numWidth) + (numWidth / 2) - 1, "%d",
+               arr[i]);
     }
 
     // Draw message
@@ -97,9 +103,11 @@ public:
     mvprintw(5, paddingX, "****************");
 
     // Draw sort name
-    mvprintw(0, paddingX + textWidth - sortName.length(), "%s", sortName.c_str());
+    mvprintw(0, paddingX + textWidth - sortName.length(), "%s",
+             sortName.c_str());
     std::string speedMessage = "Speed: " + std::to_string(speed);
-    mvprintw(1, paddingX + textWidth - speedMessage.size(), "%s", speedMessage.c_str());
+    mvprintw(1, paddingX + textWidth - speedMessage.size(), "%s",
+             speedMessage.c_str());
     refresh();
   }
 
@@ -137,7 +145,7 @@ public:
     paddingX = (cols - textWidth) / 2;
     running = true;
 
-    if(numWidth < 2) {
+    if (numWidth < 2) {
       endwin();
       printf("Your terminal is too small\n");
       printf("Possible solutions: \n");
@@ -156,7 +164,8 @@ public:
   }
 
 private:
-  int rows, cols, textWidth, paddingX, numWidth, now, lastFrame, delay = 0, speed;
+  int rows, cols, textWidth, paddingX, numWidth, now, lastFrame, delay = 0,
+                                                                 speed;
   bool running = false;
   Sort *sort;
   SortAlgo sortType;
@@ -171,7 +180,10 @@ int main(int argc, char **argv) {
   int speed = 5;
 
   std::map<std::string, SortAlgo> sortAlgoMap{
-      {"bubble", SortAlgo::Bubble}, {"selection", SortAlgo::Selection}};
+      {"bubble", SortAlgo::Bubble},
+      {"selection", SortAlgo::Selection},
+      {"insertion", SortAlgo::Insertion},
+  };
 
   cliApp.add_option("-n,--number", number, "Number of elements (Default: 10)");
   cliApp
