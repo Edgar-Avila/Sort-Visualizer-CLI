@@ -11,7 +11,4 @@ can better understand the inner workings of the sorting algorithms.
 - **(-s, --speed)** Speed of the visualizer
 
 ## Development
-To compile the project you need g++ and the ncurses library:
-```properties
-g++ ./main.cpp -o sort-visualizer -lncurses
-```
+To compile the project you need `g++` ,the `ncurses` library and make, then just run `make`. This will produce an executable `app` that you can use.
