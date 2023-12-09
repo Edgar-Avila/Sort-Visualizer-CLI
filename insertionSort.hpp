@@ -1,3 +1,5 @@
+#pragma once
+
 #include "sort.hpp"
 
 class InsertionSort : public Sort {

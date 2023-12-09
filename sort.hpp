@@ -1,6 +1,8 @@
 #pragma once
-
 #include <vector>
+
+enum class SortAlgo { Bubble, Selection, Insertion };
+
 class Sort {
 public:
   Sort(std::vector<int> &arr) : arr(arr) {}
