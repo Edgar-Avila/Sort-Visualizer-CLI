@@ -1,22 +1,18 @@
 #pragma once
 
-#include "bubbleSort.hpp"
-#include "insertionSort.hpp"
-#include "selectionSort.hpp"
-#include "sort.hpp"
-#include <chrono>
+#include "../sort/bubbleSort.hpp"
+#include "../sort/insertionSort.hpp"
+#include "../sort/selectionSort.hpp"
+#include "../sort/sort.hpp"
+#include "./app.hpp"
 #include <ncurses.h>
+#include <stdlib.h>
 #include <string>
-#include <thread>
 #include <vector>
 
-const int FPS = 30;
-const int MAX_DELTA = 1000 / FPS;
-const int MAX_DELAY = 30;
-
-class App {
+class SortApp : public App {
 public:
-  App(std::vector<int> &arr, SortAlgo sortType, int speed)
+  SortApp(std::vector<int> &arr, SortAlgo sortType, int speed)
       : arr(arr), sortType(sortType), speed(speed) {
     switch (sortType) {
     case SortAlgo::Bubble:
@@ -34,9 +30,25 @@ public:
     }
   }
 
-  ~App() { delete sort; }
+  ~SortApp() { delete sort; }
 
-  void update() {
+  void init() override {
+    numWidth = cols / arr.size();
+    textWidth = numWidth * arr.size() - 1;
+    paddingX = (cols - textWidth) / 2;
+
+    if (numWidth < 2) {
+      endwin();
+      printf("Your terminal is too small\n");
+      printf("Possible solutions: \n");
+      printf("- Maximize your terminal\n");
+      printf("- Reduce the number of elements\n");
+      printf("- Use a smaller font\n");
+      exit(1);
+    }
+  }
+
+  void update() override {
     delay--;
     if (delay <= 0 && !sort->done()) {
       delay = MAX_DELAY - (3 * speed);
@@ -59,20 +71,20 @@ public:
     }
   }
 
-  void draw() {
+  void draw() override {
     erase();
     // Draw bars
     for (int i = 0; i < arr.size(); i++) {
-      int color = 0;
+      short color = 0;
       char c = '#';
       if (sort->done()) {
-        color = 2;
+        color = FG_GREEN;
         c = '@';
       } else if (i == sort->current()) {
-        color = 1;
+        color = FG_BLUE;
         c = '*';
       } else if (sort->sorted(i)) {
-        color = 2;
+        color = FG_GREEN;
         c = '@';
       }
       if (color > 0)
@@ -109,62 +121,8 @@ public:
     refresh();
   }
 
-  void fps() {
-    now = std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::system_clock::now().time_since_epoch())
-              .count();
-    int delta = now - lastFrame;
-    lastFrame = now;
-
-    if (delta < MAX_DELTA) {
-      std::this_thread::sleep_for(std::chrono::milliseconds(MAX_DELTA - delta));
-    }
-  }
-
-  void run() {
-    initscr();
-    if (has_colors() == FALSE) {
-      endwin();
-      printf("Your terminal doesn't support colors\n");
-      exit(1);
-    }
-    start_color();
-    noecho();
-    nodelay(stdscr, TRUE);
-    init_pair(1, COLOR_BLUE, COLOR_BLACK);
-    init_pair(2, COLOR_GREEN, COLOR_BLACK);
-    getmaxyx(stdscr, rows, cols);
-    now = std::chrono::duration_cast<std::chrono::milliseconds>(
-              std::chrono::system_clock::now().time_since_epoch())
-              .count();
-    lastFrame = now;
-    numWidth = cols / arr.size();
-    textWidth = numWidth * arr.size() - 1;
-    paddingX = (cols - textWidth) / 2;
-    running = true;
-
-    if (numWidth < 2) {
-      endwin();
-      printf("Your terminal is too small\n");
-      printf("Possible solutions: \n");
-      printf("- Maximize your terminal\n");
-      printf("- Reduce the number of elements\n");
-      printf("- Use a smaller font\n");
-      exit(1);
-    }
-
-    while (running) {
-      fps();
-      update();
-      draw();
-    }
-    endwin();
-  }
-
 private:
-  int rows, cols, textWidth, paddingX, numWidth, now, lastFrame, delay = 0,
-                                                                 speed;
-  bool running = false;
+  int textWidth, paddingX, numWidth, speed, delay = 0;
   Sort *sort;
   SortAlgo sortType;
   std::string sortName;
