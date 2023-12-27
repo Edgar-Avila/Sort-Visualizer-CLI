@@ -1,5 +1,6 @@
 #pragma once
 
+#include "../path/bfs.hpp"
 #include "../path/path.hpp"
 #include "app.hpp"
 #include <ncurses.h>
@@ -11,7 +12,9 @@ enum PathScene { Setup, Visualize };
 class PathApp : public App {
 public:
   PathApp(PathAlgo pathAlgo, int width = 0, int height = 0, int speed = 5)
-      : width(width), height(height), speed(speed) {}
+      : width(width), height(height), speed(speed), pathAlgo(pathAlgo) {}
+
+  ~PathApp() { delete pathSolver; }
 
   void init() override {
     startRow = 0;
@@ -85,6 +88,15 @@ public:
     }
     if (c == '\n') {
       scene = PathScene::Visualize;
+      if (pathSolver != nullptr)
+        delete pathSolver;
+      switch (pathAlgo) {
+      case PathAlgo::BFS:
+        pathSolver =
+            new BFSSolver(startRow, startCol, endRow, endCol, width - 1, height - 1, obstacles);
+        break;
+      }
+      pathSolver->reset();
     }
     if (c == ' ') {
       if (obstacles.find({cursorRow, cursorCol}) != obstacles.end()) {
@@ -103,11 +115,18 @@ public:
     delay--;
     if (delay <= 0) {
       delay = MAX_DELAY - (3 * speed);
+      pathSolver->step();
     }
     char c = getch();
 
     if (c == 'q') {
       running = false;
+    }
+    if (c == 'h' && speed > 1) {
+      speed--;
+    }
+    if (c == 'l' && speed < 10) {
+      speed++;
     }
     if (c == '\t') {
       showHelp = !showHelp;
@@ -132,6 +151,14 @@ public:
     int leftPadding = (cols - width - 2) / 2;
     int topPadding = (rows - height - 2) / 2;
     mvprintw(topPadding + row + 1, leftPadding + col + 1, "%c", c);
+  }
+
+  void drawVisited() {
+    attron(COLOR_PAIR(FG_YELLOW));
+    for (auto [row, col] : pathSolver->visited) {
+      printCharInWorld(row, col, '@');
+    }
+    attroff(COLOR_PAIR(FG_YELLOW));
   }
 
   void drawBoundaries() {
@@ -168,30 +195,35 @@ public:
   }
 
   void setupDrawHelp() {
-    if(!showHelp) return;
+    if (!showHelp)
+      return;
     attron(COLOR_PAIR(FG_CYAN));
     mvprintw(0, cols - 29, "*****************************");
     mvprintw(1, cols - 29, "* Shortest Path (SETUP)     *");
-    mvprintw(2, cols - 29, "* - hjkl: move cursor       *");
-    mvprintw(3, cols - 29, "* - s: set start            *");
-    mvprintw(4, cols - 29, "* - e: set end              *");
-    mvprintw(5, cols - 29, "* - space: toggle obstacle  *");
-    mvprintw(6, cols - 29, "* - enter: visualize        *");
-    mvprintw(7, cols - 29, "* - q: quit                 *");
-    mvprintw(8, cols - 29, "* - tab: toggle help        *");
+    mvprintw(2, cols - 29, "* - hjkl: Move cursor       *");
+    mvprintw(3, cols - 29, "* - s: set Start            *");
+    mvprintw(4, cols - 29, "* - e: set End              *");
+    mvprintw(5, cols - 29, "* - space: Toggle obstacle  *");
+    mvprintw(6, cols - 29, "* - enter: Visualize        *");
+    mvprintw(7, cols - 29, "* - q: Quit                 *");
+    mvprintw(8, cols - 29, "* - tab: Toggle help        *");
     mvprintw(9, cols - 29, "*****************************");
     attroff(COLOR_PAIR(FG_CYAN));
   }
 
   void visualizeDrawHelp() {
-    if(!showHelp) return;
+    if (!showHelp)
+      return;
     attron(COLOR_PAIR(FG_CYAN));
     mvprintw(0, cols - 29, "*****************************");
     mvprintw(1, cols - 29, "* Shortest Path (VISUALIZE) *");
-    mvprintw(2, cols - 29, "* - q: quit                 *");
-    mvprintw(3, cols - 29, "* - enter: setup            *");
-    mvprintw(4, cols - 29, "* - tab: toggle help        *");
-    mvprintw(5, cols - 29, "*****************************");
+    mvprintw(2, cols - 29, "* Speed: %d                 *", speed);
+    mvprintw(3, cols - 29, "* - q: Quit                 *");
+    mvprintw(4, cols - 29, "* - enter: Setup            *");
+    mvprintw(5, cols - 29, "* - h: Slow Down            *");
+    mvprintw(6, cols - 29, "* - l: Speed up             *");
+    mvprintw(7, cols - 29, "* - tab: Toggle help        *");
+    mvprintw(8, cols - 29, "*****************************");
     attroff(COLOR_PAIR(FG_CYAN));
   }
 
@@ -205,6 +237,7 @@ public:
 
   void visualizeDraw() {
     drawBoundaries();
+    drawVisited();
     drawObstacles();
     drawStartEnd();
     visualizeDrawHelp();
@@ -227,5 +260,7 @@ private:
   int startRow, startCol, endRow, endCol, cursorRow, cursorCol, width, height,
       speed = 5, delay = 0;
   PathScene scene = PathScene::Setup;
+  PathAlgo pathAlgo;
+  Path *pathSolver = nullptr;
   bool showHelp = true;
 };
