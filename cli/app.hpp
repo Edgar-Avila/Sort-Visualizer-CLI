@@ -8,6 +8,7 @@
 class App {
 public:
   virtual void init() = 0;
+  virtual void handle_input(int c) = 0;
   virtual void update() = 0;
   virtual void draw() = 0;
 
@@ -40,6 +41,10 @@ public:
     init_pair(FG_YELLOW, COLOR_YELLOW, COLOR_BLACK);
     init_pair(FG_CYAN, COLOR_CYAN, COLOR_BLACK);
     init_pair(FG_MAGENTA, COLOR_MAGENTA, COLOR_BLACK);
+    keypad(stdscr, TRUE);
+    mousemask(ALL_MOUSE_EVENTS | REPORT_MOUSE_POSITION, NULL);
+    mouseinterval(0);
+    printf("\033[?1003h\n");
   }
 
   void initFps() {
@@ -55,9 +60,19 @@ public:
     init();
     running = true;
     while (running) {
-      fps();
-      update();
-      draw();
+      /* fps(); */
+      handle_input(getch());
+
+      now = std::chrono::duration_cast<std::chrono::milliseconds>(
+                std::chrono::system_clock::now().time_since_epoch())
+                .count();
+      int delta = now - lastFrame;
+
+      if (delta > MAX_DELTA) {
+        update();
+        draw();
+        lastFrame = now;
+      }
     }
     endwin();
   }

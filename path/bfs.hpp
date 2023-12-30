@@ -1,42 +1,53 @@
 #pragma once
 
 #include "path.hpp"
+#include <map>
 #include <queue>
 #include <utility>
+#include <vector>
 
 class BFSSolver : public Path {
 public:
   BFSSolver(int startRow, int startCol, int endRow, int endcol, int maxRow,
-      int maxCol, std::set<std::pair<int, int>> &obstacles)
+            int maxCol, std::set<std::pair<int, int>> &obstacles)
       : Path(startRow, startCol, endRow, endcol, maxRow, maxCol, obstacles) {}
 
   void step() override {
     int row, col;
 
-    while(true) {
-      if (queue.empty()) return;
+    while (true) {
+      if (done())
+        return;
+
       std::pair<int, int> next = queue.front();
       row = next.first;
       col = next.second;
-      if(row == endRow && col == endCol) return;
       queue.pop();
-      if(visited.find({row, col}) == visited.end()) break;
+      if (visited.find({row, col}) == visited.end())
+        break;
     }
-
-
     visited.insert({row, col});
 
-    if (row > 0) {
-      queue.push({row - 1, col});
-    }
-    if (row < maxRow) {
-      queue.push({row + 1, col});
-    }
-    if (col > 0) {
-      queue.push({row, col - 1});
-    }
-    if (col < maxCol) {
-      queue.push({row, col + 1});
+    for (auto &direction : directions) {
+      int nr = row + direction.first;
+      int nc = col + direction.second;
+
+      // If in boundaries and not visited and is not an obstacle
+      if (nr >= 0 && nr <= maxRow && nc >= 0 && nc <= maxCol &&
+          visited.find({nr, nc}) == visited.end() &&
+          obstacles.find({nr, nc}) == obstacles.end()) {
+        // Push to queue and add trace
+        queue.push({nr, nc});
+        trace.insert({{nr, nc}, {row, col}});
+
+        // Stop and make solution if end is reached
+        if (nr == endRow && nc == endCol) {
+          while (!queue.empty())
+            queue.pop();
+          makeSolution();
+          return;
+        }
+      }
     }
   }
 
@@ -51,6 +62,21 @@ public:
     queue.push({startRow, startCol});
   }
 
+  void makeSolution() {
+    std::pair<int, int> current = {endRow, endCol};
+    while (current != std::pair<int, int>{startRow, startCol}) {
+      solution.push_back(current);
+      current = trace[current];
+    }
+    solution.push_back({startRow, startCol});
+  }
+
+  std::vector<std::pair<int, int>> getPath() override { return solution; }
+
 private:
   std::queue<std::pair<int, int>> queue;
+  std::map<std::pair<int, int>, std::pair<int, int>> trace;
+  std::vector<std::pair<int, int>> solution;
+  std::vector<std::pair<int, int>> directions = {
+      {-1, 0}, {1, 0}, {0, -1}, {0, 1}};
 };

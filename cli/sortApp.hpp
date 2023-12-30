@@ -54,8 +54,10 @@ public:
       delay = MAX_DELAY - (3 * speed);
       sort->step();
     }
+  }
 
-    char c = getch();
+  void handle_input(int c) override {
+    /* char c = getch(); */
     if (c == 'q') {
       running = false;
     }
@@ -105,19 +107,19 @@ public:
     }
 
     // Draw message
-    mvprintw(0, paddingX, "****************");
-    mvprintw(1, paddingX, "* q: Quit      *");
-    mvprintw(2, paddingX, "* h: Slow down *");
-    mvprintw(3, paddingX, "* l: Speed up  *");
-    mvprintw(4, paddingX, "* s: Shuffle   *");
-    mvprintw(5, paddingX, "****************");
+    attron(COLOR_PAIR(FG_CYAN));
+    mvprintw(0, paddingX + textWidth - 19, "************************");
+    mvprintw(1, paddingX + textWidth - 19, "* Sort Visualizer      *");
+    mvprintw(2, paddingX + textWidth - 19, "* Algo: %-15s*", sortName.c_str());
+    mvprintw(3, paddingX + textWidth - 19, "* Speed: %02d            *", speed);
+    mvprintw(4, paddingX + textWidth - 19, "* q: Quit              *");
+    mvprintw(5, paddingX + textWidth - 19, "* h: Slow down         *");
+    mvprintw(6, paddingX + textWidth - 19, "* l: Speed up          *");
+    mvprintw(7, paddingX + textWidth - 19, "* s: Shuffle           *");
+    mvprintw(8, paddingX + textWidth - 19, "************************");
+    attroff(COLOR_PAIR(FG_CYAN));
 
     // Draw sort name
-    mvprintw(0, paddingX + textWidth - sortName.length(), "%s",
-             sortName.c_str());
-    std::string speedMessage = "Speed: " + std::to_string(speed);
-    mvprintw(1, paddingX + textWidth - speedMessage.size(), "%s",
-             speedMessage.c_str());
     refresh();
   }
 

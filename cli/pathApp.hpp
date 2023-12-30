@@ -5,6 +5,7 @@
 #include "app.hpp"
 #include <ncurses.h>
 #include <set>
+#include <string.h>
 #include <utility>
 
 enum PathScene { Setup, Visualize };
@@ -53,9 +54,7 @@ public:
     }
   }
 
-  void setupUpdate() {
-    char c = getch();
-
+  void setupUpdate(int c) {
     if (c == 'q') {
       running = false;
     }
@@ -92,8 +91,9 @@ public:
         delete pathSolver;
       switch (pathAlgo) {
       case PathAlgo::BFS:
-        pathSolver =
-            new BFSSolver(startRow, startCol, endRow, endCol, width - 1, height - 1, obstacles);
+        pathSolver = new BFSSolver(startRow, startCol, endRow, endCol,
+                                   height - 1, width - 1, obstacles);
+        algoName = strdup("BFS");
         break;
       }
       pathSolver->reset();
@@ -109,16 +109,41 @@ public:
         }
       }
     }
+    MEVENT event;
+    if (c == KEY_MOUSE) {
+      if (getmouse(&event) == OK) {
+        int worldRow, worldCol;
+        std::pair<int, int> coor = windowCoordinatesToWorld(event.y, event.x);
+        worldRow = coor.first;
+        worldCol = coor.second;
+        if (event.bstate & BUTTON1_PRESSED) {
+          drawing = true;
+        }
+        if (event.bstate & BUTTON1_RELEASED) {
+          drawing = false;
+        }
+        if (worldRow < 0 || worldRow >= height || worldCol < 0 ||
+            worldCol >= width) {
+          return;
+        }
+        cursorRow = worldRow;
+        cursorCol = worldCol;
+        if (drawing) {
+          if (obstacles.find({worldRow, worldCol}) != obstacles.end()) {
+            obstacles.erase({worldRow, worldCol});
+          } else {
+            bool isStart = worldRow == startRow && worldCol == startCol;
+            bool isEnd = worldRow == endRow && worldCol == endCol;
+            if (!isStart && !isEnd) {
+              obstacles.insert({worldRow, worldCol});
+            }
+          }
+        }
+      }
+    }
   }
 
-  void visualizeUpdate() {
-    delay--;
-    if (delay <= 0) {
-      delay = MAX_DELAY - (3 * speed);
-      pathSolver->step();
-    }
-    char c = getch();
-
+  void visualizeInput(int c) {
     if (c == 'q') {
       running = false;
     }
@@ -136,10 +161,28 @@ public:
     }
   }
 
+  void visualizeUpdate() {
+    delay--;
+    if (delay <= 0 && !pathSolver->done()) {
+      delay = MAX_DELAY - (3 * speed);
+      pathSolver->step();
+    }
+  }
+
+  void handle_input(int c) override {
+    switch (scene) {
+    case PathScene::Setup:
+      setupUpdate(c);
+      break;
+    case PathScene::Visualize:
+      visualizeInput(c);
+      break;
+    }
+  }
+
   void update() override {
     switch (scene) {
     case PathScene::Setup:
-      setupUpdate();
       break;
     case PathScene::Visualize:
       visualizeUpdate();
@@ -151,6 +194,12 @@ public:
     int leftPadding = (cols - width - 2) / 2;
     int topPadding = (rows - height - 2) / 2;
     mvprintw(topPadding + row + 1, leftPadding + col + 1, "%c", c);
+  }
+
+  std::pair<int, int> windowCoordinatesToWorld(int row, int col) {
+    int leftPadding = (cols - width - 2) / 2;
+    int topPadding = (rows - height - 2) / 2;
+    return {row - topPadding - 1, col - leftPadding - 1};
   }
 
   void drawVisited() {
@@ -201,13 +250,15 @@ public:
     mvprintw(0, cols - 29, "*****************************");
     mvprintw(1, cols - 29, "* Shortest Path (SETUP)     *");
     mvprintw(2, cols - 29, "* - hjkl: Move cursor       *");
-    mvprintw(3, cols - 29, "* - s: set Start            *");
-    mvprintw(4, cols - 29, "* - e: set End              *");
-    mvprintw(5, cols - 29, "* - space: Toggle obstacle  *");
-    mvprintw(6, cols - 29, "* - enter: Visualize        *");
-    mvprintw(7, cols - 29, "* - q: Quit                 *");
-    mvprintw(8, cols - 29, "* - tab: Toggle help        *");
-    mvprintw(9, cols - 29, "*****************************");
+    mvprintw(3, cols - 29, "* - mouse: Move cursor      *");
+    mvprintw(4, cols - 29, "* - s: set Start            *");
+    mvprintw(5, cols - 29, "* - e: set End              *");
+    mvprintw(6, cols - 29, "* - space: Toggle obstacle  *");
+    mvprintw(7, cols - 29, "* - lclick: Toggle obstacle *");
+    mvprintw(8, cols - 29, "* - enter: Visualize        *");
+    mvprintw(9, cols - 29, "* - q: Quit                 *");
+    mvprintw(10, cols - 29, "* - tab: Toggle help        *");
+    mvprintw(11, cols - 29, "*****************************");
     attroff(COLOR_PAIR(FG_CYAN));
   }
 
@@ -217,13 +268,14 @@ public:
     attron(COLOR_PAIR(FG_CYAN));
     mvprintw(0, cols - 29, "*****************************");
     mvprintw(1, cols - 29, "* Shortest Path (VISUALIZE) *");
-    mvprintw(2, cols - 29, "* Speed: %d                 *", speed);
-    mvprintw(3, cols - 29, "* - q: Quit                 *");
-    mvprintw(4, cols - 29, "* - enter: Setup            *");
-    mvprintw(5, cols - 29, "* - h: Slow Down            *");
-    mvprintw(6, cols - 29, "* - l: Speed up             *");
-    mvprintw(7, cols - 29, "* - tab: Toggle help        *");
-    mvprintw(8, cols - 29, "*****************************");
+    mvprintw(2, cols - 29, "* Speed: %02d                 *", speed);
+    mvprintw(3, cols - 29, "* Algorithm: %-15s*", algoName);
+    mvprintw(4, cols - 29, "* - q: Quit                 *");
+    mvprintw(5, cols - 29, "* - enter: Setup            *");
+    mvprintw(6, cols - 29, "* - h: Slow Down            *");
+    mvprintw(7, cols - 29, "* - l: Speed up             *");
+    mvprintw(8, cols - 29, "* - tab: Toggle help        *");
+    mvprintw(9, cols - 29, "*****************************");
     attroff(COLOR_PAIR(FG_CYAN));
   }
 
@@ -235,10 +287,21 @@ public:
     setupDrawHelp();
   }
 
+  void drawPath() {
+    if (!pathSolver->done())
+      return;
+    attron(COLOR_PAIR(FG_GREEN));
+    for (auto [row, col] : pathSolver->getPath()) {
+      printCharInWorld(row, col, '@');
+    }
+    attroff(COLOR_PAIR(FG_GREEN));
+  }
+
   void visualizeDraw() {
     drawBoundaries();
     drawVisited();
     drawObstacles();
+    drawPath();
     drawStartEnd();
     visualizeDrawHelp();
   }
@@ -253,6 +316,7 @@ public:
       visualizeDraw();
       break;
     }
+    refresh();
   }
 
 private:
@@ -263,4 +327,6 @@ private:
   PathAlgo pathAlgo;
   Path *pathSolver = nullptr;
   bool showHelp = true;
+  bool drawing = false;
+  char *algoName;
 };

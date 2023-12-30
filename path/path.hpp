@@ -2,6 +2,7 @@
 
 #include <set>
 #include <utility>
+#include <vector>
 
 enum PathAlgo { BFS };
 
@@ -17,6 +18,7 @@ public:
   virtual void step() = 0;
   virtual bool done() = 0;
   virtual void reset() = 0;
+  virtual std::vector<std::pair<int, int>> getPath() = 0;
 
   std::set<std::pair<int, int>> visited;
   std::set<std::pair<int, int>> obstacles;
