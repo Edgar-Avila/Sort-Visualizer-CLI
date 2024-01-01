@@ -37,6 +37,7 @@ See the algorithm navigating and avoiding the obstacles!
 - **(-s, --speed)** Speed of the visualizer _(sort, path)_
 - **(-n, --number)** Number of elements _(sort)_
 - **(-d, --dimensions)** Width and height of the visualizer _(path)_
+- **(-D, --diagonal)** Allow diagonal movement _(path)_
 
 ## Development
 To compile the project you need `g++` ,the `ncurses` library and make, then just run `make`. This will produce an executable `app` that you can use.

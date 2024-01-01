@@ -9,8 +9,8 @@
 class BFSSolver : public Path {
 public:
   BFSSolver(int startRow, int startCol, int endRow, int endcol, int maxRow,
-            int maxCol, std::set<std::pair<int, int>> &obstacles)
-      : Path(startRow, startCol, endRow, endcol, maxRow, maxCol, obstacles) {}
+            int maxCol, std::set<std::pair<int, int>> &obstacles, bool diagonal = false)
+      : Path(startRow, startCol, endRow, endcol, maxRow, maxCol, obstacles), diagonal(diagonal) {}
 
   void step() override {
     int row, col;
@@ -55,6 +55,13 @@ public:
 
   void reset() override {
     visited.clear();
+    directions = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+    if (diagonal) {
+      directions.push_back({-1, -1});
+      directions.push_back({-1, 1});
+      directions.push_back({1, -1});
+      directions.push_back({1, 1});
+    }
     queue = std::queue<std::pair<int, int>>();
     for (auto &obstacle : obstacles) {
       visited.insert(obstacle);
@@ -79,4 +86,5 @@ private:
   std::vector<std::pair<int, int>> solution;
   std::vector<std::pair<int, int>> directions = {
       {-1, 0}, {1, 0}, {0, -1}, {0, 1}};
+  bool diagonal = false;
 };

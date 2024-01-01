@@ -12,8 +12,8 @@ enum PathScene { Setup, Visualize };
 
 class PathApp : public App {
 public:
-  PathApp(PathAlgo pathAlgo, int width = 0, int height = 0, int speed = 5)
-      : width(width), height(height), speed(speed), pathAlgo(pathAlgo) {}
+  PathApp(PathAlgo pathAlgo, int width = 0, int height = 0, int speed = 5, bool diagonal = false)
+      : width(width), height(height), speed(speed), pathAlgo(pathAlgo), diagonal(diagonal) {}
 
   ~PathApp() { delete pathSolver; }
 
@@ -92,7 +92,7 @@ public:
       switch (pathAlgo) {
       case PathAlgo::BFS:
         pathSolver = new BFSSolver(startRow, startCol, endRow, endCol,
-                                   height - 1, width - 1, obstacles);
+                                   height - 1, width - 1, obstacles, diagonal);
         algoName = strdup("BFS");
         break;
       }
@@ -329,4 +329,5 @@ private:
   bool showHelp = true;
   bool drawing = false;
   char *algoName;
+  bool diagonal = false;
 };

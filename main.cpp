@@ -16,6 +16,7 @@ int main(int argc, char **argv) {
   std::pair<int, int> dimensions = {0, 0};
   int number = 10;
   int speed = 5;
+  bool diagonal = false;
 
   // **************************************************************************
   // Map enums to strings
@@ -58,6 +59,8 @@ int main(int argc, char **argv) {
 
   pathCommand->add_option("-s,--speed", speed, "Speed (Default: 5)")
       ->check(CLI::Range(1, 10));
+  pathCommand->add_flag("-D,--diagonal", diagonal,
+                        "Allow diagonal movement (Default: false)");
 
   // **************************************************************************
   // Parse
@@ -88,7 +91,7 @@ int main(int argc, char **argv) {
   // Run path got_subcommand
   // **************************************************************************
   if (cliApp.got_subcommand("path")) {
-    PathApp pathApp(pathAlgo, dimensions.first, dimensions.second, speed);
+    PathApp pathApp(pathAlgo, dimensions.first, dimensions.second, speed, diagonal);
     pathApp.run();
   }
 
